@@ -2,8 +2,8 @@ venv/
 dbcreds.py
 __pycache__/
 .DS_Store/
-/.vscode
-audio/
-images/
+.vscode/
+audio/*
+images/*
 !audio/.gitkeep
 !images/.gitkeep
