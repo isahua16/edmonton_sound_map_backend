@@ -60,6 +60,53 @@ def post_feature():
     else:
         return make_response('Something went wrong', 500)
 
+@app.get('/api/features')
+def get_features():
+    results = run_statement('call get_features()')
+    if(type(results) == list):
+        return make_response(jsonify(results), 200)
+    else:
+        return make_response('Something went wrong', 500)
+
+@app.get('/api/feature/image')
+def get_feature_image():
+    error = check_data(request.args, ['feature_id'])
+    if(error != None):
+        return make_response(jsonify(error), 400)
+    results = run_statement('call get_feature_image(?)', [request.args.get('feature_id')])
+    if(type(results) != list):
+        return make_response(jsonify(results), 500)
+    elif(len(results) == 0):
+        return make_response(jsonify("Feature doesn't exist"), 400)
+    feature_image = send_from_directory('images', results[0]['feature_image'])
+    return feature_image
+
+@app.get('/api/user/image')
+def get_user_image():
+    error = check_data(request.args, ['feature_id'])
+    if(error != None):
+        return make_response(jsonify(error), 400)
+    results = run_statement('call get_user_image(?)', [request.args.get('feature_id')])
+    if(type(results) != list):
+        return make_response(jsonify(results), 500)
+    elif(len(results) == 0):
+        return make_response(jsonify("Feature doesn't exist"), 400)
+    feature_image = send_from_directory('images', results[0]['user_image'])
+    return feature_image
+
+@app.get('/api/feature/audio')
+def get_feature_audio():
+    error = check_data(request.args, ['feature_id'])
+    if(error != None):
+        return make_response(jsonify(error), 400)
+    results = run_statement('call get_feature_audio(?)', [request.args.get('feature_id')])
+    if(type(results) != list):
+        return make_response(jsonify(results), 500)
+    elif(len(results) == 0):
+        return make_response(jsonify("Feature doesn't exist"), 400)
+    feature_audio = send_from_directory('audio', results[0]['feature_audio'])
+    return feature_audio
+
 if(production_mode == True):
     print('Running in production mode')
     import bjoern # type: ignore
