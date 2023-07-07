@@ -8,9 +8,6 @@ def save_file(file, folder, extensions):
             return filename
         except Exception as error:
             print('FILE SAVE ERROR:' , error)
-
-
-
 def check_data(data_type, required_data):
     for data in required_data:
         if(data_type.get(data) == None):

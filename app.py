@@ -48,10 +48,13 @@ def post_feature():
     error = check_data(request.files, ['audio'])
     if(error != None):
         return make_response(jsonify(error), 400)
-    filename = save_file(request.files['audio'], 'audio', ['wav', 'mp4', 'mp3'])
-    if(filename == None):
+    audio_file = save_file(request.files['audio'], 'audio', ['wav','mp4','mp3'])
+    feature_image = None
+    if(request.files.get('image') != None):
+        feature_image = save_file(request.files['image'], 'images', ['gif','png','jpg','jpeg','webp'])
+    if(audio_file == None):
         return make_response(jsonify("Something has gone wrong"), 500)
-    results = run_statement('call post_feature(?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [request.form.get('lat'), request.form.get('long'), request.form.get('image'), request.form.get('location'), request.form.get('name'), request.form.get('description'), request.form.get('is_interior'), request.form.get('is_mechanical'), request.form.get('is_natural'), request.form.get('is_societal'), request.form.get('season'), request.form.get('time'), request.form.get('token'), filename])
+    results = run_statement('call post_feature(?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [request.form.get('lat'), request.form.get('long'), feature_image, request.form.get('location'), request.form.get('name'), request.form.get('description'), request.form.get('is_interior'), request.form.get('is_mechanical'), request.form.get('is_natural'), request.form.get('is_societal'), request.form.get('season'), request.form.get('time'), request.form.get('token'), audio_file])
     if(type(results) == list and results != []):
         return make_response(jsonify(results), 200)
     else:
