@@ -15,7 +15,7 @@ def post_user():
     if(error != None):
         return make_response(jsonify(error), 400)
     if(request.content_length < (0.5 * 1000000)):
-        filename = save_file(request.files['image'])
+        filename = save_file(request.files['image'], 'images', ['gif','png','jpg','jpeg', 'webp'])
     if(filename == None):
         return make_response(jsonify("Something has gone wrong"), 500)
     token = uuid.uuid4().hex
@@ -26,6 +26,36 @@ def post_user():
     else:
         return make_response("Something went wrong", 500)
 
+@app.post('/api/login')
+def post_login():
+    error = check_data(request.json, ['email', 'password'])
+    if(error != None):
+        return make_response(jsonify(error), 400)
+    token = uuid.uuid4().hex
+    results = run_statement('call post_login(?,?,?)', [request.json.get('email'), request.json.get('password'), token])
+    if(type(results) == list and results != []):
+        return make_response(jsonify(results), 200)
+    elif(type(results) == list and results == []):
+        return make_response(jsonify("Invalid password or email"), 400)
+    else:
+        return make_response('Something went wrong', 500)
+    
+@app.post('/api/feature')
+def post_feature():
+    error = check_data(request.form, ['lat', 'long', 'location', 'name', 'description', 'is_interior', 'is_mechanical', 'is_natural', 'is_societal', 'season', 'time', 'token'])
+    if(error != None):
+        return make_response(jsonify(error), 400)
+    error = check_data(request.files, ['audio'])
+    if(error != None):
+        return make_response(jsonify(error), 400)
+    filename = save_file(request.files['audio'], 'audio', ['wav', 'mp4', 'mp3'])
+    if(filename == None):
+        return make_response(jsonify("Something has gone wrong"), 500)
+    results = run_statement('call post_feature(?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [request.form.get('lat'), request.form.get('long'), request.form.get('image'), request.form.get('location'), request.form.get('name'), request.form.get('description'), request.form.get('is_interior'), request.form.get('is_mechanical'), request.form.get('is_natural'), request.form.get('is_societal'), request.form.get('season'), request.form.get('time'), request.form.get('token'), filename])
+    if(type(results) == list and results != []):
+        return make_response(jsonify(results), 200)
+    else:
+        return make_response('Something went wrong', 500)
 
 if(production_mode == True):
     print('Running in production mode')
