@@ -5,3 +5,5 @@ __pycache__/
 /.vscode
 audio/
 images/
+!audio/.gitkeep
+!images/.gitkeep
