@@ -89,16 +89,27 @@ def get_new_feature_image():
 
 @app.get('/api/user/image')
 def get_user_image():
-    error = check_data(request.args, ['feature_id'])
+    error = check_data(request.args, ['token'])
     if(error != None):
         return make_response(jsonify(error), 400)
-    results = run_statement('call get_user_image(?)', [request.args.get('feature_id')])
+    results = run_statement('call get_user_image(?)', [request.args.get('token')])
     if(type(results) != list):
         return make_response(jsonify(results), 500)
     elif(len(results) == 0):
-        return make_response(jsonify("Feature doesn't exist"), 400)
-    feature_image = send_from_directory('images', results[0]['user_image'])
-    return feature_image
+        return make_response(jsonify("User doesn't exist"), 400)
+    user_image = send_from_directory('images', results[0]['user_image'])
+    return user_image
+
+@app.get('/api/user')
+def get_user():
+    error = check_data(request.args, ['token'])
+    if(error != None):
+        return make_response(jsonify(error), 400)
+    results = run_statement('call get_user_profile(?)', [request.args.get('token')])
+    if(type(results) == list):
+        return make_response(jsonify(results), 200)
+    else:
+        return make_response('Something went wrong', 500)
 
 @app.get('/api/feature/audio')
 def get_feature_audio():
