@@ -1,6 +1,6 @@
 from dbhelpers import run_statement
 from dbcreds import production_mode
-from apihelpers import check_data, save_file
+from apihelpers import check_data, save_file, delete_file
 from flask import Flask, request, make_response, jsonify, send_from_directory
 import uuid
 app = Flask(__name__)
@@ -100,12 +100,41 @@ def get_user_image():
     user_image = send_from_directory('images', results[0]['user_image'])
     return user_image
 
+@app.patch('/api/user/image')
+def patch_user_image():
+    error = check_data(request.form, ['token'])
+    if(error != None):
+        return make_response(jsonify(error), 400)
+    error = check_data(request.files, ['image'])    
+    if(error != None):
+        return make_response(jsonify(error), 400)
+    old_image_results = run_statement('call get_user_image(?)', [request.form.get('token')])
+    if(type(old_image_results) == list):
+        new_image = save_file(request.files['image'], 'images', ['gif','png','jpg','jpeg','webp'])
+        new_image_results = run_statement('call patch_user_image(?,?)', [new_image, request.form.get('token')])
+        if(type(new_image_results) == list and new_image_results[0]['updated_rows'] == 1):
+            if (old_image_results[0]['user_image'] != 'f46d31d3-e1ec-4023-8978-9674af319155.jpg'):
+                delete_file(old_image_results[0]['user_image'], 'images')
+            return make_response(jsonify(new_image_results), 200)
+        else:
+            return make_response('Something went wrong', 500)  
+    else:
+        return make_response('Something went wrong', 500)
+    
 @app.get('/api/user')
 def get_user():
     error = check_data(request.args, ['token'])
     if(error != None):
         return make_response(jsonify(error), 400)
     results = run_statement('call get_user_profile(?)', [request.args.get('token')])
+    if(type(results) == list):
+        return make_response(jsonify(results), 200)
+    else:
+        return make_response('Something went wrong', 500)
+
+@app.patch('/api/user')
+def patch_user():
+    results = run_statement('call patch_user_info(?,?,?)', [request.json.get('email'), request.json.get('username'), request.json.get('bio')])
     if(type(results) == list):
         return make_response(jsonify(results), 200)
     else:
