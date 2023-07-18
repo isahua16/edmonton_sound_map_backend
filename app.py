@@ -38,6 +38,8 @@ def post_feature():
     error = check_data(request.form, ['lat', 'long', 'location', 'name', 'description', 'is_interior', 'is_mechanical', 'is_natural', 'is_societal', 'season', 'time', 'token'])
     if(error != None):
         return make_response(jsonify(error), 400)
+    if(request.form.get('is_interior') == 0 and request.form.get('is_mechanical') == 0 and request.form.get('is_natural') == 0 and request.form.get('is_societal') == 0):
+        return make_response("Feature must contain at least one category", 400) 
     error = check_data(request.files, ['audio'])    
     if(error != None):
         return make_response(jsonify(error), 400)
@@ -134,9 +136,22 @@ def get_user():
 
 @app.patch('/api/user')
 def patch_user():
-    results = run_statement('call patch_user_info(?,?,?)', [request.json.get('email'), request.json.get('username'), request.json.get('bio')])
+    results = run_statement('call patch_user_info(?,?,?,?)', [request.json.get("token"), request.json.get('email'), request.json.get('username'), request.json.get('bio')])
     if(type(results) == list):
         return make_response(jsonify(results), 200)
+    else:
+        return make_response('Something went wrong', 500)
+    
+@app.delete('/api/user')
+def delete_user():
+    error = check_data(request.json, ['password', 'token'])
+    if(error != None):
+        return make_response(jsonify(error), 400)
+    results = run_statement('call delete_user(?,?)', [request.json.get('password'), request.json.get('  ')])
+    if(type(results) == list and results[0]['deleted_rows'] == 1):
+        return make_response(jsonify(results), 200)
+    elif(type(results) == list and results[0]['deleted_rows'] == 0):
+        return make_response(jsonify(results), 400)
     else:
         return make_response('Something went wrong', 500)
 
