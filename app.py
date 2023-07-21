@@ -105,13 +105,13 @@ def patch_any_feature_image():
     error = check_data(request.files, ['image'])    
     if(error != None):
         return make_response(jsonify(error), 400)
-    old_results = run_statement('call get_feature_image(?)', [request.form.get('feature_id')])
+    old_results = run_statement('call get_old_feature_image(?)', [request.form.get('feature_id')])
     if(type(old_results) == list):
         new_image = save_file(request.files['image'], 'images', ['gif','png','jpg','jpeg','webp'])
         new_results = run_statement('call patch_any_feature_image(?,?,?)', [request.form.get('token'),request.form.get('feature_id'), new_image])
         if(type(new_results) == list and new_results[0]['updated_rows'] == 1):
-            if (old_results[0]['user_image'] != 'c1c831b2-7542-459b-8f94-6e639e1bacb2.jpg'):
-                delete_file(old_results[0]['user_image'], 'images')
+            if (old_results[0]['feature_image'] != 'c1c831b2-7542-459b-8f94-6e639e1bacb2.jpg'):
+                delete_file(old_results[0]['feature_image'], 'images')
             return make_response(jsonify(new_results), 200)
         else:
             return make_response('Something went wrong', 500)  
