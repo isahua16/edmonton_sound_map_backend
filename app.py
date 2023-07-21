@@ -55,6 +55,14 @@ def post_feature():
     else:
         return make_response('Something went wrong', 500)
 
+@app.patch('/api/admin/feature')
+def patch_any_feature_info():
+    results = run_statement('call patch_any_feature_info(?,?,?,?,?,?,?,?,?,?)', [request.json.get('token'), request.json.get('feature_id'), request.json.get('name'), request.json.get('description'), request.json.get('is_interior'), request.json.get('is_mechanical'),request.json.get('is_natural'), request.json.get('is_societal'), request.json.get('season'),request.json.get('time')])
+    if(type(results) == list):
+        return make_response(jsonify(results), 200)
+    else:
+        return make_response('Something went wrong', 500)
+
 @app.get('/api/features')
 def get_features():
     results = run_statement('call get_features()')
@@ -88,6 +96,27 @@ def get_new_feature_image():
         return make_response(jsonify("Feature doesn't exist"), 400)
     feature_image = send_from_directory('images', results[0]['feature_image'])
     return feature_image
+
+@app.patch('/api/admin/feature/image')
+def patch_any_feature_image():
+    error = check_data(request.form, ['token', 'feature_id'])
+    if(error != None):
+        return make_response(jsonify(error), 400)
+    error = check_data(request.files, ['image'])    
+    if(error != None):
+        return make_response(jsonify(error), 400)
+    old_results = run_statement('call get_feature_image(?)', [request.form.get('feature_id')])
+    if(type(old_results) == list):
+        new_image = save_file(request.files['image'], 'images', ['gif','png','jpg','jpeg','webp'])
+        new_results = run_statement('call patch_any_feature_image(?,?,?)', [request.form.get('token'),request.form.get('feature_id'), new_image])
+        if(type(new_results) == list and new_results[0]['updated_rows'] == 1):
+            if (old_results[0]['user_image'] != 'c1c831b2-7542-459b-8f94-6e639e1bacb2.jpg'):
+                delete_file(old_results[0]['user_image'], 'images')
+            return make_response(jsonify(new_results), 200)
+        else:
+            return make_response('Something went wrong', 500)  
+    else:
+        return make_response('Something went wrong', 500)
 
 @app.get('/api/user/image')
 def get_user_image():
