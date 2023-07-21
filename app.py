@@ -71,6 +71,17 @@ def get_features():
     else:
         return make_response('Something went wrong', 500)
 
+@app.get('/api/user/features')
+def get_user_features():
+    error = check_data(request.args, ['token'])
+    if(error != None):
+        return make_response(jsonify(error), 400)
+    results = run_statement('call get_user_features(?)', [request.args.get('token')])
+    if(type(results) == list):
+        return make_response(jsonify(results), 200)
+    else:
+        return make_response('Something went wrong', 500)
+
 @app.get('/api/feature/image')
 def get_feature_image():
     error = check_data(request.args, ['feature_id'])
@@ -176,9 +187,16 @@ def delete_user():
     error = check_data(request.json, ['password', 'token'])
     if(error != None):
         return make_response(jsonify(error), 400)
-    results = run_statement('call delete_user(?,?)', [request.json.get('password'), request.json.get('  ')])
+    image = run_statement('call get_user_image(?)', [request.json.get('token')])
+    results = run_statement('call delete_user(?,?)', [request.json.get('password'), request.json.get('token')])
     if(type(results) == list and results[0]['deleted_rows'] == 1):
-        return make_response(jsonify(results), 200)
+        if(image[0]['user_image'] == 'f46d31d3-e1ec-4023-8978-9674af319155.jpg'):
+            return make_response(jsonify(results), 200)
+        elif(image[0]['user_image'] != 'f46d31d3-e1ec-4023-8978-9674af319155.jpg'):
+            delete_file(image[0]['user_image'], 'images')
+            return make_response(jsonify(results), 200)
+        else:
+            return make_response('Something went wrong', 500)
     elif(type(results) == list and results[0]['deleted_rows'] == 0):
         return make_response(jsonify(results), 400)
     else:
@@ -261,9 +279,44 @@ def delete_feature():
     error = check_data(request.json, ['token', 'feature_id'])
     if(error != None):
         return make_response(jsonify(error), 400)
+    audio = run_statement('call get_feature_audio(?)', [request.json.get('feature_id')])
+    image = run_statement('call get_feature_image(?)', [request.json.get('feature_id')])
     results = run_statement('call delete_any_feature(?,?)', [request.json.get('token'), request.json.get('feature_id')])
-    if(type(results) == list):
-        return make_response(jsonify(results), 200)
+    if(type(results) == list and results[0]['deleted_rows'] == 1):
+        if(type(audio) == list and audio != []):
+            delete_file(audio[0]['feature_audio'], 'audio')
+            if(type(image) == list and image[0]['feature_image'] == 'c1c831b2-7542-459b-8f94-6e639e1bacb2.jpg'):
+                return make_response(jsonify(results), 200)
+            elif(type(image) == list and image[0]['feature_image'] != 'c1c831b2-7542-459b-8f94-6e639e1bacb2.jpg'):
+                delete_file(image[0]['feature_image'], 'images')
+                return make_response(jsonify(results), 200)
+            else:
+                return make_response('Something went wrong', 500)
+        else:
+            return make_response('Something went wrong', 500)
+    else:
+        return make_response('Something went wrong', 500)
+
+@app.delete('/api/user/feature')
+def delete_user_feature():
+    error = check_data(request.json, ['token', 'feature_id'])
+    if(error != None):
+        return make_response(jsonify(error), 400)
+    audio = run_statement('call get_feature_audio(?)', [request.json.get('feature_id')])
+    image = run_statement('call get_feature_image(?)', [request.json.get('feature_id')])
+    results = run_statement('call delete_user_feature(?,?)', [request.json.get('token'), request.json.get('feature_id')])
+    if(type(results) == list and results[0]['deleted_rows'] == 1):
+        if(type(audio) == list and audio != []):
+            delete_file(audio[0]['feature_audio'], 'audio')
+            if(type(image) == list and image[0]['feature_image'] == 'c1c831b2-7542-459b-8f94-6e639e1bacb2.jpg'):
+                return make_response(jsonify(results), 200)
+            elif(type(image) == list and image[0]['feature_image'] != 'c1c831b2-7542-459b-8f94-6e639e1bacb2.jpg'):
+                delete_file(image[0]['feature_image'], 'images')
+                return make_response(jsonify(results), 200)
+            else:
+                return make_response('Something went wrong', 500)
+        else:
+            return make_response('Something went wrong', 500)
     else:
         return make_response('Something went wrong', 500)
 
