@@ -1,8 +1,34 @@
 from dbhelpers import run_statement
-from dbcreds import production_mode
+from dbcreds import production_mode, smtp_password
 from apihelpers import check_data, save_file, delete_file
 from flask import Flask, request, make_response, jsonify, send_from_directory
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 import uuid
+
+# message = MIMEMultipart()
+# message["To"] = 'Isael'
+# message["From"] = 'Huard'
+# message["Subject"] = 'Welcome to Edmonton Sound Map'
+# title = '<b> Title line here. </b>'
+# messageText = MIMEText('Please verify your account','html')
+# message.attach(messageText)
+
+# email = 'isaelhuarddev@gmail.com'
+# password = smtp_password
+
+# server = smtplib.SMTP('smtp.gmail.com:587')
+# server.ehlo('Gmail')
+# server.starttls()
+# server.login(email,password)
+# fromaddr = 'isaelhuarddev@gmail.com'
+# toaddrs  = 'isaelhuarddev+test@gmail.com'
+# server.sendmail(fromaddr,toaddrs,message.as_string())
+
+# server.quit()
+
+
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1000000
 
@@ -13,25 +39,49 @@ def post_user():
         return make_response(jsonify(error), 400)
     token = uuid.uuid4().hex
     salt = uuid.uuid4().hex
-    results = run_statement('call post_user(?,?,?,?,?,?,?)', [request.json.get('email'), request.json.get('username'), request.json.get('image'), request.json.get('bio'), request.json.get('password'), token, salt])
-    if(type(results) == list):
+    results = run_statement('call post_user(?,?,?,?,?,?,?)', [request.json.get('email'), request.json.get('username'), request.json.get('image'), request.json.get('bio'), request.json.get('password'), salt, token])
+    if(type(results) == list and results[0]['created_rows'] == 1):
         return make_response(jsonify(results), 200)
     else:
         return make_response("Something went wrong", 500)
+
+@app.patch('/api/user/verify')
+def verify_user():
+    error = check_data(request.json, ['token'])
+    if(error != None):
+        return make_response(jsonify(error), 400)
+    results = run_statement('call verify_user(?)', [request.json.get('token')])
+    if(type(results) == list and results[0]['verified_user'] == 1):
+        return make_response(jsonify(results), 200)
+    elif (type(results) == list and results[0]['verified_user'] == 0):
+        return make_response(jsonify("Token is invalid"), 400)
+    else:
+        return make_response('Something went wrong', 500)
 
 @app.post('/api/login')
 def post_login():
     error = check_data(request.json, ['email', 'password'])
     if(error != None):
         return make_response(jsonify(error), 400)
-    token = uuid.uuid4().hex
-    results = run_statement('call post_login(?,?,?)', [request.json.get('email'), request.json.get('password'), token])
-    if(type(results) == list and results != []):
-        return make_response(jsonify(results), 200)
-    elif(type(results) == list and results == []):
-        return make_response(jsonify("Invalid password or email"), 400)
+    verification = run_statement('call get_verification(?,?)', [request.json.get('email'), request.json.get('password')])
+    if(type(verification) == list and verification == []):
+           return make_response(jsonify("Invalid credentials"), 400)
+    if(type(verification) == list and verification[0]['is_verified'] == 1):
+        token = uuid.uuid4().hex
+        results = run_statement('call post_login(?,?,?)', [request.json.get('email'), request.json.get('password'), token])
+        if(type(results) == list and results == []):
+           return make_response(jsonify("Invalid credentials"), 400)
+        if((type(results) == list and results != [])):
+            return make_response(jsonify(results), 200)
+        elif(type(results) == list and results == []):
+            return make_response(jsonify("Invalid credentials"), 400)
+        else:
+            return make_response('Something went wrong', 500)
+    elif(type(verification) == list and verification[0]['is_verified'] == 0):
+        return make_response(jsonify("Please verify email"), 400)
     else:
         return make_response('Something went wrong', 500)
+    
     
 @app.post('/api/feature')
 def post_feature():
