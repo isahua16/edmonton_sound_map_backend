@@ -18,6 +18,8 @@ def post_user():
     if(type(results) == list and results[0]['created_rows'] == 1):
         send_email("isaelhuarddev@gmail.com", request.json.get('email'), "Welcome to Edmonton Sound Map!", 
                    f'<p>Before you can log in, we need you to verify your email.</p><br><a target="_blank" href="http://localhost:8080/verify/{token}">Verify my email</a>')
+        send_email("isaelhuarddev@gmail.com", "isaelhuard@gmail.com", "New user", 
+            f'<p>A new user has signed up</p>')
         return make_response(jsonify(results), 200)
     else:
         return make_response("Something went wrong", 500)
@@ -78,6 +80,8 @@ def post_feature():
         return make_response(jsonify("Something has gone wrong"), 500)
     results = run_statement('call post_feature(?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [request.form.get('lat'), request.form.get('long'), feature_image, request.form.get('location'), request.form.get('name'), request.form.get('description'), request.form.get('is_interior'), request.form.get('is_mechanical'), request.form.get('is_natural'), request.form.get('is_societal'), request.form.get('season'), request.form.get('time'), request.form.get('token'), audio_file])
     if(type(results) == list and len(results) != 0):
+        send_email("isaelhuarddev@gmail.com", "isaelhuard@gmail.com", "New feature added", 
+                   f'<p>A user has submitted a new feature.</p>')
         return make_response(jsonify(results), 200)
     else:
         return make_response('Something went wrong', 500)
@@ -344,6 +348,32 @@ def delete_user_feature():
                 return make_response('Something went wrong', 500)
         else:
             return make_response('Something went wrong', 500)
+    else:
+        return make_response('Something went wrong', 500)
+
+@app.post('/api/user/password')
+def post_password_token():
+    error = check_data(request.json, ['email'])
+    if(error != None):
+        return make_response(jsonify(error), 400)
+    token = uuid.uuid4().hex
+    results = run_statement('call post_password_token(?,?)', [request.json.get('email'), token])
+    if(type(results) == list):
+        send_email("isaelhuarddev@gmail.com", request.json.get('email'), "Reset your Password", 
+                   f'<p>Please reset your password at the link below promptly. If you did not request a password reset, you can safely ignore this email.</p><br><a target="_blank" href="http://localhost:8080/reset/{token}">Reset my password</a>')
+        return make_response(jsonify(results), 200)
+    else:
+        return make_response('Something went wrong', 500)
+    
+@app.patch('/api/user/password')
+def patch_user_password():
+    error = check_data(request.json, ['password', 'token'])
+    if(error != None):
+        return make_response(jsonify(error), 400)
+    salt = uuid.uuid4().hex
+    results = run_statement('call patch_user_password(?,?,?)', [request.json.get('token'), request.json.get('password'), salt])
+    if(type(results) == list and results[0]['updated_rows'] == 1):
+        return make_response(jsonify(results), 200)
     else:
         return make_response('Something went wrong', 500)
 
