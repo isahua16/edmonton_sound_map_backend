@@ -1,33 +1,8 @@
 from dbhelpers import run_statement
-from dbcreds import production_mode, smtp_password
-from apihelpers import check_data, save_file, delete_file
+from dbcreds import production_mode
+from apihelpers import check_data, save_file, delete_file, send_email
 from flask import Flask, request, make_response, jsonify, send_from_directory
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 import uuid
-
-# message = MIMEMultipart()
-# message["To"] = 'Isael'
-# message["From"] = 'Huard'
-# message["Subject"] = 'Welcome to Edmonton Sound Map'
-# title = '<b> Title line here. </b>'
-# messageText = MIMEText('Please verify your account','html')
-# message.attach(messageText)
-
-# email = 'isaelhuarddev@gmail.com'
-# password = smtp_password
-
-# server = smtplib.SMTP('smtp.gmail.com:587')
-# server.ehlo('Gmail')
-# server.starttls()
-# server.login(email,password)
-# fromaddr = 'isaelhuarddev@gmail.com'
-# toaddrs  = 'isaelhuarddev+test@gmail.com'
-# server.sendmail(fromaddr,toaddrs,message.as_string())
-
-# server.quit()
-
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1000000
@@ -41,6 +16,8 @@ def post_user():
     salt = uuid.uuid4().hex
     results = run_statement('call post_user(?,?,?,?,?,?,?)', [request.json.get('email'), request.json.get('username'), request.json.get('image'), request.json.get('bio'), request.json.get('password'), salt, token])
     if(type(results) == list and results[0]['created_rows'] == 1):
+        send_email("isaelhuarddev@gmail.com", request.json.get('email'), "Welcome to Edmonton Sound Map!", 
+                   f'<p>Before you can log in, we need you to verify your email.</p><br><a target="_blank" href="http://localhost:8080/verify/{token}">Verify my email</a>')
         return make_response(jsonify(results), 200)
     else:
         return make_response("Something went wrong", 500)
@@ -64,23 +41,23 @@ def post_login():
     if(error != None):
         return make_response(jsonify(error), 400)
     verification = run_statement('call get_verification(?,?)', [request.json.get('email'), request.json.get('password')])
-    if(type(verification) == list and verification == []):
+    if(type(verification) == list and len(verification) == 0):
            return make_response(jsonify("Invalid credentials"), 400)
     if(type(verification) == list and verification[0]['is_verified'] == 1):
         token = uuid.uuid4().hex
         results = run_statement('call post_login(?,?,?)', [request.json.get('email'), request.json.get('password'), token])
-        if(type(results) == list and results == []):
-           return make_response(jsonify("Invalid credentials"), 400)
-        if((type(results) == list and results != [])):
+        if(type(results) == list and len(results) == 0):
+           return make_response(jsonify("Invalid credentials"), 400)       
+        if((type(results) == list and len(results) != 0)):
             return make_response(jsonify(results), 200)
-        elif(type(results) == list and results == []):
-            return make_response(jsonify("Invalid credentials"), 400)
         else:
             return make_response('Something went wrong', 500)
     elif(type(verification) == list and verification[0]['is_verified'] == 0):
-        return make_response(jsonify("Please verify email"), 400)
+        send_email("isaelhuarddev@gmail.com", request.json.get('email'), "Please verify your email", 
+                   f'<p>Before you can log in, we need you to verify your email.</p><br><a target="_blank" href="http://localhost:8080/verify/{verification[0]["token"]}">Verify my email</a>')
+        return make_response(jsonify("Please verify email   "), 400)
     else:
-        return make_response('Something went wrong', 500)
+        return make_response('Something went wrong, please try again', 500)
     
     
 @app.post('/api/feature')
@@ -100,7 +77,7 @@ def post_feature():
     if(audio_file == None):
         return make_response(jsonify("Something has gone wrong"), 500)
     results = run_statement('call post_feature(?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [request.form.get('lat'), request.form.get('long'), feature_image, request.form.get('location'), request.form.get('name'), request.form.get('description'), request.form.get('is_interior'), request.form.get('is_mechanical'), request.form.get('is_natural'), request.form.get('is_societal'), request.form.get('season'), request.form.get('time'), request.form.get('token'), audio_file])
-    if(type(results) == list and results != []):
+    if(type(results) == list and len(results) != 0):
         return make_response(jsonify(results), 200)
     else:
         return make_response('Something went wrong', 500)
@@ -226,7 +203,7 @@ def get_user():
 
 @app.patch('/api/user')
 def patch_user():
-    results = run_statement('call patch_user_info(?,?,?,?)', [request.json.get("token"), request.json.get('email'), request.json.get('username'), request.json.get('bio')])
+    results = run_statement('call patch_user_info(?,?,?)', [request.json.get("token"), request.json.get('username'), request.json.get('bio')])
     if(type(results) == list):
         return make_response(jsonify(results), 200)
     else:
@@ -333,7 +310,7 @@ def delete_feature():
     image = run_statement('call get_feature_image(?)', [request.json.get('feature_id')])
     results = run_statement('call delete_any_feature(?,?)', [request.json.get('token'), request.json.get('feature_id')])
     if(type(results) == list and results[0]['deleted_rows'] == 1):
-        if(type(audio) == list and audio != []):
+        if(type(audio) == list and len(audio) != 0):
             delete_file(audio[0]['feature_audio'], 'audio')
             if(type(image) == list and image[0]['feature_image'] == 'c1c831b2-7542-459b-8f94-6e639e1bacb2.jpg'):
                 return make_response(jsonify(results), 200)
@@ -356,7 +333,7 @@ def delete_user_feature():
     image = run_statement('call get_feature_image(?)', [request.json.get('feature_id')])
     results = run_statement('call delete_user_feature(?,?)', [request.json.get('token'), request.json.get('feature_id')])
     if(type(results) == list and results[0]['deleted_rows'] == 1):
-        if(type(audio) == list and audio != []):
+        if(type(audio) == list and len(audio) != 0):
             delete_file(audio[0]['feature_audio'], 'audio')
             if(type(image) == list and image[0]['feature_image'] == 'c1c831b2-7542-459b-8f94-6e639e1bacb2.jpg'):
                 return make_response(jsonify(results), 200)
