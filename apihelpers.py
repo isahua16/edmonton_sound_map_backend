@@ -3,7 +3,7 @@ import uuid
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from dbcreds import smtp_password, smtp_email
+from dbcreds import smtp_password, sender_email
 
 def save_file(file, folder, extensions):
     if('.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in extensions):
@@ -35,7 +35,7 @@ def send_email(sender, receiver, subject, body):
         message["Subject"] = subject
         messageText = MIMEText(body,'html')
         message.attach(messageText)
-        email = smtp_email
+        email = sender_email
         password = smtp_password
         server = smtplib.SMTP('smtp.gmail.com:587')
         server.ehlo('Gmail')

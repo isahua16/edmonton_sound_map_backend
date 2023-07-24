@@ -1,5 +1,5 @@
 from dbhelpers import run_statement
-from dbcreds import production_mode
+from dbcreds import production_mode, domain, sender_email, admin_email
 from apihelpers import check_data, save_file, delete_file, send_email
 from flask import Flask, request, make_response, jsonify, send_from_directory
 import uuid
@@ -16,9 +16,9 @@ def post_user():
     salt = uuid.uuid4().hex
     results = run_statement('call post_user(?,?,?,?,?,?,?)', [request.json.get('email'), request.json.get('username'), request.json.get('image'), request.json.get('bio'), request.json.get('password'), salt, token])
     if(type(results) == list and results[0]['created_rows'] == 1):
-        send_email("isaelhuarddev@gmail.com", request.json.get('email'), "Welcome to Edmonton Sound Map!", 
-                   f'<p>Before you can log in, we need you to verify your email.</p><br><a target="_blank" href="http://localhost:8080/verify/{token}">Verify my email</a>')
-        send_email("isaelhuarddev@gmail.com", "isaelhuard@gmail.com", "New user", 
+        send_email(sender_email, request.json.get('email'), "Welcome to Edmonton Sound Map!", 
+                   f'<p>Before you can log in, we need you to verify your email.</p><br><a target="_blank" href="{domain}/verify/{token}">Verify my email</a>')
+        send_email(sender_email, admin_email, "New user", 
             f'<p>A new user has signed up</p>')
         return make_response(jsonify(results), 200)
     else:
@@ -55,8 +55,8 @@ def post_login():
         else:
             return make_response('Something went wrong', 500)
     elif(type(verification) == list and verification[0]['is_verified'] == 0):
-        send_email("isaelhuarddev@gmail.com", request.json.get('email'), "Please verify your email", 
-                   f'<p>Before you can log in, we need you to verify your email.</p><br><a target="_blank" href="http://localhost:8080/verify/{verification[0]["token"]}">Verify my email</a>')
+        send_email(sender_email, request.json.get('email'), "Please verify your email", 
+                   f'<p>Before you can log in, we need you to verify your email.</p><br><a target="_blank" href="{domain}/verify/{verification[0]["token"]}">Verify my email</a>')
         return make_response(jsonify("Please verify email   "), 400)
     else:
         return make_response('Something went wrong, please try again', 500)
@@ -80,7 +80,7 @@ def post_feature():
         return make_response(jsonify("Something has gone wrong"), 500)
     results = run_statement('call post_feature(?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [request.form.get('lat'), request.form.get('long'), feature_image, request.form.get('location'), request.form.get('name'), request.form.get('description'), request.form.get('is_interior'), request.form.get('is_mechanical'), request.form.get('is_natural'), request.form.get('is_societal'), request.form.get('season'), request.form.get('time'), request.form.get('token'), audio_file])
     if(type(results) == list and len(results) != 0):
-        send_email("isaelhuarddev@gmail.com", "isaelhuard@gmail.com", "New feature added", 
+        send_email(sender_email, admin_email, "New feature added", 
                    f'<p>A user has submitted a new feature.</p>')
         return make_response(jsonify(results), 200)
     else:
@@ -225,6 +225,8 @@ def delete_user():
             return make_response(jsonify(results), 200)
         elif(image[0]['user_image'] != 'f46d31d3-e1ec-4023-8978-9674af319155.jpg'):
             delete_file(image[0]['user_image'], 'images')
+            send_email(sender_email, admin_email, "User Deleted", 
+            f'<p>A user has deleted their account</p>')
             return make_response(jsonify(results), 200)
         else:
             return make_response('Something went wrong', 500)
@@ -343,6 +345,8 @@ def delete_user_feature():
                 return make_response(jsonify(results), 200)
             elif(type(image) == list and image[0]['feature_image'] != 'c1c831b2-7542-459b-8f94-6e639e1bacb2.jpg'):
                 delete_file(image[0]['feature_image'], 'images')
+                send_email(sender_email, admin_email, "Feature Deleted", 
+            f'<p>A user has deleted a feature</p>')
                 return make_response(jsonify(results), 200)
             else:
                 return make_response('Something went wrong', 500)
@@ -360,7 +364,7 @@ def post_password_token():
     results = run_statement('call post_password_token(?,?)', [request.json.get('email'), token])
     if(type(results) == list):
         send_email("isaelhuarddev@gmail.com", request.json.get('email'), "Reset your Password", 
-                   f'<p>Please reset your password at the link below promptly. If you did not request a password reset, you can safely ignore this email.</p><br><a target="_blank" href="http://localhost:8080/reset/{token}">Reset my password</a>')
+                   f'<p>Please reset your password at the link below promptly. If you did not request a password reset, you can safely ignore this email.</p><br><a target="_blank" href="{domain}/reset/{token}">Reset my password</a>')
         return make_response(jsonify(results), 200)
     else:
         return make_response('Something went wrong', 500)
