@@ -384,7 +384,7 @@ def patch_user_password():
 if(production_mode == True):
     print('Running in production mode')
     import bjoern # type: ignore
-    bjoern.run(app, '0.0.0.0', 5000)
+    bjoern.run(app, '0.0.0.0', 5003)
 else:
     print('Running in development mode')
     from flask_cors import CORS
