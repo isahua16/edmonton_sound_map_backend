@@ -17,7 +17,7 @@ def post_user():
     results = run_statement('call post_user(?,?,?,?,?,?,?)', [request.json.get('email'), request.json.get('username'), request.json.get('image'), request.json.get('bio'), request.json.get('password'), salt, token])
     if(type(results) == list and results[0]['created_rows'] == 1):
         send_email(sender_email, request.json.get('email'), "Welcome to Edmonton Sound Map!", 
-                   f'<p>Before you can log in, we need you to verify your email.</p><br><a target="_blank" href="{domain}/verify/{token}">Verify my email</a>')
+                   f'<p>Before you can log in, we need you to verify your email.</p><br><a target="_blank" href="{domain}/#/verify/{token}">Verify my email</a>')
         send_email(sender_email, admin_email, "New user", 
             f'<p>A new user has signed up</p>')
         return make_response(jsonify(results), 200)
@@ -56,7 +56,7 @@ def post_login():
             return make_response('Something went wrong', 500)
     elif(type(verification) == list and verification[0]['is_verified'] == 0):
         send_email(sender_email, request.json.get('email'), "Please verify your email", 
-                   f'<p>Before you can log in, we need you to verify your email.</p><br><a target="_blank" href="{domain}/verify/{verification[0]["token"]}">Verify my email</a>')
+                   f'<p>Before you can log in, we need you to verify your email.</p><br><a target="_blank" href="{domain}/#/verify/{verification[0]["token"]}">Verify my email</a>')
         return make_response(jsonify("Please verify email   "), 400)
     else:
         return make_response('Something went wrong, please try again', 500)
@@ -364,7 +364,7 @@ def post_password_token():
     results = run_statement('call post_password_token(?,?)', [request.json.get('email'), token])
     if(type(results) == list):
         send_email("isaelhuarddev@gmail.com", request.json.get('email'), "Reset your Password", 
-                   f'<p>Please reset your password at the link below promptly. If you did not request a password reset, you can safely ignore this email.</p><br><a target="_blank" href="{domain}/reset/{token}">Reset my password</a>')
+                   f'<p>Please reset your password at the link below promptly. If you did not request a password reset, you can safely ignore this email.</p><br><a target="_blank" href="{domain}/#/reset/{token}">Reset my password</a>')
         return make_response(jsonify(results), 200)
     else:
         return make_response('Something went wrong', 500)
