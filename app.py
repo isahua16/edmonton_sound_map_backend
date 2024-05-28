@@ -5,7 +5,7 @@ from flask import Flask, request, make_response, jsonify, send_from_directory
 import uuid
 
 app = Flask(__name__)
-app.config['MAX_CONTENT_LENGTH'] = 5 * 1000000
+app.config['MAX_CONTENT_LENGTH'] = 1 * 1000000
 
 @app.post('/api/user')
 def post_user():
